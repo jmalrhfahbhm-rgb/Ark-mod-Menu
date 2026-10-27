@@ -1,0 +1,17 @@
+name: Build Ark Mod
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: set up JDK 17
+      uses: actions/actions-setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    - name: Build with CMake and Gradle
+      run: |
+        echo "Building the mod menu..."
+        # جيت هوب سيقوم هنا بقراءة ملف CMakeLists.txt وتجميع الجافا والـ C++ معاً تلقائياً
+        
