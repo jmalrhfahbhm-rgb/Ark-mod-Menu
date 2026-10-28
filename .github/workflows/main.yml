@@ -5,13 +5,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: set up JDK 17
-      uses: actions/actions-setup-java@v4
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-    - name: Build with CMake and Gradle
+        
+    - name: Build DEX and Compile Java
       run: |
-        echo "Building the mod menu..."
-        # جيت هوب سيقوم هنا بقراءة ملف CMakeLists.txt وتجميع الجافا والـ C++ معاً تلقائياً
+        echo "Starting Java Compilation..."
+        mkdir -p build/classes
+        # تجميع ملفات الجافا الثلاثة معاً
+        javac -source 1.8 -target 1.8 FloatingMenu.java MenuData.java NativeBridge.java -d build/classes
+        
+        echo "Converting to DEX format..."
+        # تحميل أداة dx الرسمية لتحويل الملفات إلى صيغة الأندرويد dex
+        wget https://github.com -O dx.jar
+        java -jar dx.jar --dex --output=classes.dex build/classes/
+        
+    - name: Upload Mod Files
+      uses: actions/upload-artifact@v4
+      with:
+        name: Ark-Mod-Menu-DEX
+        path: classes.dex
         
