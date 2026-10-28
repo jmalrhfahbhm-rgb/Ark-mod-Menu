@@ -6,7 +6,7 @@ on:
 
 jobs:
   dex:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -15,13 +15,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Show repo files
+        run: |
+          pwd
+          ls -R . | head -50
+
       - name: Compile Java and produce classes.dex
         run: |
-          set -e
+          set -ex
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           PLATFORM=$(ls -d "$SDK"/platforms/android-* | sort -V | tail -1)
           BT=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)
-          echo "platform=$PLATFORM  build-tools=$BT"
           mkdir -p build/classes out
           javac --release 8 -cp "$PLATFORM/android.jar" -d build/classes java/*.java
           "$BT/d8" --release --min-api 24 --lib "$PLATFORM/android.jar" \
@@ -32,40 +36,3 @@ jobs:
         with:
           name: classes-dex
           path: out/classes.dex
-
-  native:
-    runs-on: ubuntu-latest
-    # Optional: the menu works without the native lib (it falls back to the broadcast path).
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Dobby (arm64-v8a)
-        run: |
-          set -e
-          NDK="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
-          echo "NDK=$NDK"
-          git clone --depth 1 https://github.com/jmpews/Dobby.git
-          cmake -S Dobby -B Dobby/build \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 \
-            -DCMAKE_BUILD_TYPE=Release -DDOBBY_GENERATE_SHARED=OFF
-          cmake --build Dobby/build -j"$(nproc)"
-          mkdir -p native/libs/arm64-v8a
-          cp "$(find Dobby/build -name 'libdobby.a' | head -1)" native/libs/arm64-v8a/
-
-      - name: Build libarkmenu.so
-        run: |
-          set -e
-          NDK="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
-          cmake -S native -B native/build \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 \
-            -DCMAKE_BUILD_TYPE=Release
-          cmake --build native/build -j"$(nproc)"
-          find native/build -name 'libarkmenu.so'
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: libarkmenu
-          path: native/build/libarkmenu.so
