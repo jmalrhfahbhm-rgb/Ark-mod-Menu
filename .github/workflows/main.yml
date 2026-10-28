@@ -15,19 +15,19 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Show repo files
-        run: |
-          pwd
-          ls -R . | head -50
-
       - name: Compile Java and produce classes.dex
         run: |
           set -ex
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
-          PLATFORM=$(ls -d "$SDK"/platforms/android-* | sort -V | tail -1)
-          BT=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)
+          PLATFORM="$SDK/platforms/android-35"
+          BT="$SDK/build-tools/35.0.0"
+          test -f "$PLATFORM/android.jar"
+          test -x "$BT/d8"
+          find . -name '*.java' -not -path './build/*' > sources.txt
+          cat sources.txt
+          test -s sources.txt
           mkdir -p build/classes out
-          javac --release 8 -cp "$PLATFORM/android.jar" -d build/classes java/*.java
+          javac --release 8 -cp "$PLATFORM/android.jar" -d build/classes @sources.txt
           "$BT/d8" --release --min-api 24 --lib "$PLATFORM/android.jar" \
             --output out $(find build/classes -name '*.class')
           ls -l out
